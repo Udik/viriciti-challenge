@@ -91,7 +91,22 @@ npm start:websocket
 npm start:rest
 ~~~
 
-The vechicle-data-generator has to be started separately.
+The vechicle-data-generator has to be started separately. 
+
+**NOTE:** It's better to use the data generator provided in the repository as I've changed the subject to `nats-dev.vehicle-data.`
+
+The data generator needs to be installed separately: from ./vehicle-data-generator:
+
+~~~
+npm install
+node ./index.js
+~~~
+
+# Issues
+
+Many, but the first that come to mind. I wanted to create entirely separate services, but also wanted to share code between them. I ended up with a single node package with multiple independent applications inside, it's far from ideal.
+
+Some rows in the test csv lack a data point and the Mongoose validation fails and the object is not saved. The mongoose schema definition can be relaxed but the validation on the object also seems a good feature.
 
 # Web interface, Docker, etc.
 
