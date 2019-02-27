@@ -8,11 +8,11 @@ Three services for the Viriciti Nodejs assignment.
 
 ## Data storage
 
-Uses a NatsReader class that connects to the NATS server and exposes a stream of objects; the stream is piped through a transformation stream (transform-mapper) and finally piped to a the writable stream provided by a class that wraps the database operations (writer-db).
+Uses a class that wraps input from NATS exposing an object stream; the stream is piped through a transformation stream (transform-mapper) and finally piped to the writable stream provided by a class that wraps the database operations (writer-db). The Db access is done through Mongoose.
 
 ## Websocket API
 
-The websocket api also uses the NatsReader class to listen to the same NATS events (a change stream from MongoDb was also an option, but more complicated) and pipes the stream through the same mapper as before; but the destination stream is provided by a WebsocketWriter class that wraps the live data stream. For the socket I've used Socket.io, which adds flexibility (though it's not strictly a websocket).
+The websocket api also taps into the stream provided by the same NatsReader class as before (a change stream from MongoDb would be a better option, but more complicated) and pipes the stream through the same mapper; but the destination stream in this case is provided by a WebsocketWriter class that wraps a Socket.io server. It's not strictly a websocket but adds flexibility (and it's simpler).
 
 ## Rest API
 
@@ -38,13 +38,8 @@ The format returned by the api is the following:
 }
 ~~~~
 
-## Libraries used:
-
-Mongoose is used to access the database, sharing the same VehicleData model between the db writer stream and the rest api.
-
-Restify is used for the rest api server.
-
-Socket.io provides the stream of live data to web applications.
+I've used Restify for the server, which provides the automatic generation of paging links.
+Mongoose is used to access the Db.
 
 ## Testing
 
