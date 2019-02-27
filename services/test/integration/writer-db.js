@@ -25,7 +25,7 @@ describe('DbWriter Tests', function () {
 
     it('writes a stream of objects to the db', async ()=> {
         let writestream = await new DbWriter().init();
-        await new Promise((res, rej) => pipeline(streamify(data), writestream, res));
+        await new Promise((res) => pipeline(streamify(data), writestream, res));
         let outData = await dbClient.collection("vehicledata").find().toArray();
 
         outData.forEach(od=> { delete od.__v; delete od._id; });

@@ -19,8 +19,8 @@ describe('NATS reader tests', function () {
         }));
 
         for (const d of data) {
-            await new Promise((res, rej) =>  natsreader.nats.publish(`${config.nats_subject}.${d.vname}`, d, ()=>res()));
-        };
+            await new Promise((res) =>  natsreader.nats.publish(`${config.nats_subject}.${d.vname}`, d, ()=>res()));
+        }
         await timeout(10);
         natsreader.stop();
         await resprom;

@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 
-const should = chai.should();
+chai.should();
 
 const config = require('../../src/config/config');
 const server = require('../../src/rest-api/index');
@@ -83,7 +83,7 @@ describe("Rest API tests", () => {
 async function resetTestDb() {
     await mongoose.connect(`${config.db_url}/${config.db_name}`, { useNewUrlParser: true });
     await VehicleData.deleteMany({});
-    for (obj of dbData) {
+    for (let obj of dbData) {
         await new VehicleData(obj).save();
     }
 }

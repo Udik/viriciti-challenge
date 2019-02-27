@@ -15,7 +15,7 @@ class NatsReader {
                 json: true
             });
     
-            this.nats.on("connect", connection => {
+            this.nats.on("connect", () => {
                 
                 console.log(`connected, listening for subject: ${config.nats_subject}.*`);
 
