@@ -1,95 +1,103 @@
 # ViriCiti Nodejs Assignment
-![
-](https://imgs.xkcd.com/comics/code_quality_3.png)
 
-This repository holds the ViriCiti Nodejs assignment. In this project you will find the description regarding the assignment for you to do. This assignment represent what we do on a day to day basis. We receive raw data from vehicles store it on database then send it to browser app via websocket.
+Three services for the Viriciti Nodejs assignment.
 
-## Getting Started
-First of all, fork the repository at:
+* data-storage: listens to messages from a NATS server, transforms them and stores data in a MongoDb  instance;
+* websocket-api: provides the same data in real time through a websocket (in fact Socket.io)
+* rest-api: provides a simple rest api to query the MongoDb database
 
-`https://github.com/viriciti/nodejs-assignment`
+## Data storage
 
-Then open up your terminal and clone the forked repository
+Uses a NatsReader class that connects to the NATS server and exposes a stream of objects; the stream is piped through a transformation stream (transform-mapper) and finally piped to a the writable stream provided by a class that wraps the database operations (writer-db).
 
-<sup>Replace [YOUR_USERNAME] with your name</sup>
+## Websocket API
 
-`git clone https://github.com/[YOUR_USERNAME]/nodejs-assignment.git`
+The websocket api also uses the NatsReader class to listen to the same NATS events (a change stream from MongoDb was also an option, but more complicated) and pipes the stream through the same mapper as before; but the destination stream is provided by a WebsocketWriter class that wraps the live data stream. For the socket I've used Socket.io, which adds flexibility (though it's not strictly a websocket).
 
-Enter the directory
+## Rest API
 
-`cd nodejs-assignment`
+It provides two endpoints:
+- /vehicledata
+- /vechicledata/{vehicle-name}
 
-Install all the dependencies
+both endpoints also accept the same set of query parameters that can be combined freely:
+- minTime: the min (Unix) timestamp for the returned data
+- maxTime: the max (Unix) timestamp
+- limit: the page size (1-500)
+- lastId + dir=[prev|next]: the Mongo ObjectId of the first/last element of the previous page, and the query direction for the next.
 
-`npm i`
-
-Run [NATS](https://nats.io/) on a docker container (make sure that you've [installed docker](https://docs.docker.com/install/))
-
-`npm run start-nats`
-
-Run the project
-
-`npm run start-broadcast`
-
-
-## The Assignment
-We have provided you with a starter kit that broadcast vehicle data to NATS. This is all setup for you. The architecture that you need to build is below:
-
-![](https://github.com/viriciti/nodejs-assignment/raw/master/uml.png)
-
-### Broadcast Server
-The first rectangle on the left is the vehicle data broadcast server, it's already built and you can find the code on `./src/vehicle-data-generator/index.js`. You can run it with `npm run start-broadcast` then it will start to push data into NATS. In that file you can find some interesting question for you to answer if you want, and also some smaller side task (Not required) to make this assignment a little bit more interesting.
-
-### Data Storage (To be build)
-After data is pushed to NATS it will be available for other services to listen. Now comes the part where you  will have to start develop. Data that is broadcast-ed to NATS is not persisted, it means that we can not access historical data (such as data from past weeks) your task is to build a data storage server that will store all data in [MongoDB](https://www.mongodb.com/) and then serve it via an HTTP REST API and a WebSocket server for live data. So to summarize it here by the checklist of task you need to do:
-
- - [ ] Create MongoDB database
- - [ ] Push data from NATS to MongoDB
- - [ ] Create REST API
- - [ ] Create WebSocket API
- - [ ] Test all APIs
- - [ ] Create Docker container for app (Optional)
-
-### Incident Reporting (Optional)
-If you have some extra time or you want to do more stuff with the data, you can build an incident reporting service that should notify user and/or record the incident with location information to the database.
-
-### Get Creative!
-Besides all this services that are listed you are free to create more services or re-arrange it. Turn all this individual services to docker containers and link them together with service discovery such as [consul](https://www.consul.io/). Or maybe create a simple front end to show where the vehicle is using those server you've just built. We're always welcome for fresh ideas!
-
-### The data
-The assignment is based on a vehicle data generator. A stream of objects that looks like this:
-
-```JS
+The format returned by the api is the following:
+	
+~~~~
 {
-  time: 1511512585495,
-  energy: 85.14600000000002,
-  gps: ["52.08940124511719","5.105764865875244"],
-  odo: 5.381999999997788,
-  speed: 12,
-  soc: 88.00000000000007
+    data: array of data points from the DB,
+    pagination: {
+      prev: "<link to previous page, with same query params>",
+      next: "<link to following page, with same query params>"
+    }
 }
-```
+~~~~
 
-* time - Unix timestamp of the moment the datapoint was recorder
-* energy - Energy used in kWh
-* gps - Latitude and longitude where the datapoint was recorded
-* odo - The distance driven in km
-* speed - The speed the vehicle was going in km/h
-* soc - The state of charge (battery) of the vehicle in %
+## Libraries used:
 
-## Read up material
-Looking to level up your knowledge and skills? These are some good articles/courses that you can check out.
-* [Node.js Streams API](https://nodejs.org/api/stream.html)
-* [Readable Streams & Back-pressure](https://www.transitions-now.com/2015/12/06/merging-time-series-data-streams-a-node-js-streams-case-part-2/)
-* [Node.js TCP server](https://nodejs.org/api/net.html)
-* [Service Registry with consul](https://www.consul.io/) or [etcd](https://coreos.com/etcd/)
-* [Docker](https://www.docker.com/)
-* [Testing REST API](https://scotch.io/tutorials/test-a-node-restful-api-with-mocha-and-chai)
+Mongoose is used to access the database, sharing the same VehicleData model between the db writer stream and the rest api.
 
-### General
-* Learn [Node.js and it's modules](http://nodeschool.io/#workshoppers)
+Restify is used for the rest api server.
 
-## Questions
-If you have any questions about the assignment or project setup feel free to contact us at <a href='mailto:s.surur@viriciti.com'>s.surur@viriciti.com</a>. You can also come by the office. We're always ready to help.
+Socket.io provides the stream of live data to web applications.
 
-Good luck with the assignment!
+## Testing
+
+The application has (improvable) integration and unit tests for its components, made using Mocha, Chai, Chai-Http, and Sinon. 
+
+# To install, test and run
+
+From the /services folder:
+
+`npm install`
+
+To run the tests:
+
+`npm run test:unit`
+
+and
+
+`npm run test:int`
+
+or, all together:
+
+`npm test`
+
+**Integration tests will run against a live NATS and MongoDb server** The configuration (DB connection string, endpoints, etc.) are set in /services/src/config/test.js as the following:
+
+~~~~
+{
+    env: 'test',
+    db_url: 'mongodb://localhost:27017',
+    db_name: 'challenge-viriciti-test',
+    nats_url: 'localhost',
+    nats_subject: "nats-test.vehicle-data",
+    restapi_port: 8080,
+    websocket_port: 80
+};
+~~~~
+
+## run the services
+
+`npm run start:all`
+
+Starts all the services in a console window, using by default the configuration in /services/src/config/dev.js.
+
+Or they can be started one by one as 
+
+~~~
+npm start:storage
+npm start:websocket
+npm start:rest
+~~~
+
+The vechicle-data-generator has to be started separately.
+
+# Web interface, Docker, etc.
+
+Working on it... :)
