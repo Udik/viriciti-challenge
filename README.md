@@ -90,9 +90,9 @@ Starts all the services in a console window, using by default the configuration 
 Or they can be started one by one as 
 
 ~~~
-npm start:storage
-npm start:websocket
-npm start:rest
+npm run start:storage
+npm run start:websocket
+npm run start:rest
 ~~~
 
 The vechicle-data-generator has to be started separately. 
