@@ -10,6 +10,11 @@ const csvParse      = require ( "csv-parse")
 const fs            = require ( "fs")
 const Writable      = require ("stream").Writable
 
+const slowConnection = {
+	minDelay: 100,
+	range: 500
+}
+
 // NATS Server is a simple, high performance open source messaging system
 // for cloud native applications, IoT messaging, and microservices architectures.
 // https://nats.io/
@@ -65,7 +70,11 @@ const readOutLoud = (vehicleName) => {
 
 					// The first parameter on this function is topics in which data will be broadcasted
 					// it also includes the vehicle name to segregate data between different vehicle
-					nats.publish(`nats-dev.vehicle-data.${vehicleName}`, obj, cb);
+					nats.publish(`nats-dev.vehicle-data.${vehicleName}`, obj, ()=>{
+						// I've replaced the original callback with a lambda that fires the callback
+						// after a random delay- this should simulate what happens on a slow connection
+						setTimeout(cb, Math.ceil(Math.random() * slowConnection.range) + slowConnection.minDelay);
+					});
 
 				}, Math.ceil(Math.random() * 150))
 			}
