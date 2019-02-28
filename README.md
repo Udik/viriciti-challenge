@@ -136,6 +136,10 @@ nats.publish(`nats-dev.vehicle-data.${vehicleName}`, obj, ()=>{
 });
 ```
 
+## Reverse driving
+
+I've implemented Hank's reverse driving using fs-reverse, a small library that provides a reverse (line by line) stream of an input file. However, since the csv headers are at the top of the file, I had to remove them from the csv input file and concatenate them to the forward and reverse streams with the combine-streams package. It works, but the further issue is that the timestamps now are reversed on the reverse journey. It could be fixed by a transform stream that changed them on the fly. 
+
 # Web interface, Docker, etc.
 
 Working on it... :)
