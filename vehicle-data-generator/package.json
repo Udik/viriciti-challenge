@@ -10,8 +10,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "combined-stream": "^1.0.7",
     "csv-parse": "^3.2.0",
     "dotenv": "^6.2.0",
+    "fs-reverse": "0.0.3",
     "nats": "^1.0.1"
   }
 }
