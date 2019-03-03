@@ -64,9 +64,14 @@ describe("Rest API tests", () => {
         it("pagination.next and prev links work", async () => {
             let res1 = await chai.request(server).get('/vehicledata?limit=2');
             let res2 = await chai.request(server).get(res1.body.pagination.next);
-            let res3 = await chai.request(server).get(res2.body.pagination.prev);
-            res2.body.data[0].time.should.be.eql(1511436340000);
-            res3.body.data[0].time.should.be.eql(1511436338000);
+            let res3 = await chai.request(server).get(res2.body.pagination.next);
+            let res4 = await chai.request(server).get(res3.body.pagination.prev);
+            res3.body.data.length.should.be.eql(2);
+            res4.body.data.length.should.be.eql(2);
+            res3.body.data[0].time.should.be.eql(1511436342000);
+            res3.body.data[1].time.should.be.eql(1511436343000);
+            res4.body.data[0].time.should.be.eql(1511436340000);
+            res4.body.data[1].time.should.be.eql(1511436341000);
         });
 
         it("pagination res and prev have same parameters as original query", async () => {

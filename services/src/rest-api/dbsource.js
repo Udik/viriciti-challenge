@@ -38,10 +38,13 @@ async function getVehicleData(params) {
     if (params.lastId) {
         q.where('_id');
         if (params.dir == 'next') q.gt(params.lastId);
-        else if (params.dir == 'prev') q.lt(params.lastId);
+        else if (params.dir == 'prev') q.lt(params.lastId).sort('-_id');
     }
     q.limit(params.limit);
-    return await q.exec();
+    let data = await q.exec();
+    if (params.dir == 'prev')
+        data.reverse();
+    return data;
 }
 
 module.exports = {

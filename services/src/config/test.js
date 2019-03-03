@@ -5,5 +5,5 @@ module.exports = {
     nats_url: 'localhost',
     nats_subject: "nats-test.vehicle-data",
     restapi_port: 8080,
-    websocket_port: 80
+    websocket_port: 8083
 };

@@ -11,17 +11,25 @@ const server = restify.createServer({
 server.use(restify.plugins.acceptParser(server.acceptable));
 server.use(restify.plugins.queryParser());
 
+server.use(
+    function crossOrigin(req, res, next) {
+        res.header("Access-Control-Allow-Origin", "*");
+        res.header("Access-Control-Allow-Headers", "X-Requested-With");
+        return next();
+    }
+);
+
 // defines routes in the format
 // /vehicledata/<vehicle-name>
 // with optional query params: minTime, maxTime, lastId, dir, limit
-server.get({ name: 'vehicledata-specific', path: '/vehicledata/:vname'}, (req, res, next) => {
+server.get({ name: 'vehicledata-specific', path: '/vehicledata/:vname' }, (req, res, next) => {
     serveVehicleData('vehicledata-specific', req.params.vname, req, res, next);
 });
 
 // defines routes in the format
 // /vehicledata
 // with optional query params: minTime, maxTime, lastId, dir, limit
-server.get({name: 'vehicledata-all', path: '/vehicledata'}, (req, res, next) => {
+server.get({ name: 'vehicledata-all', path: '/vehicledata' }, (req, res, next) => {
     serveVehicleData('vehicledata-all', undefined, req, res, next);
 });
 
@@ -32,7 +40,7 @@ async function start() {
             console.log('rest server %s listening at %s', server.name, server.url);
         });
     }
-    catch(err) {
+    catch (err) {
         console.log("error starting the rest server", err);
     }
 }
@@ -53,7 +61,7 @@ function serveVehicleData(route, vname, req, res, next) {
         if (vname)
             searchParams.vname = vname;
     }
-    catch(err) {
+    catch (err) {
         res.send(new errs.BadRequestError(err.message));
         next();
         return;
@@ -72,7 +80,7 @@ function serveVehicleData(route, vname, req, res, next) {
                     }),
                     next: server.router.render(route, { vname }, {
                         ...req.query,
-                        lastId: data[data.length-1]._id,
+                        lastId: data[data.length - 1]._id,
                         dir: 'next'
                     }),
                 }
@@ -88,10 +96,10 @@ function serveVehicleData(route, vname, req, res, next) {
 
 function buildSearchParams(query) {
     var searchParams = {
-        ...query.minTime !== undefined && { minTime: parseInt(query.minTime)},
-        ...query.maxTime !== undefined && { maxTime: parseInt(query.maxTime)},
-        ...query.lastId !== undefined && { lastId: query.lastId},
-        ...query.dir !== undefined && { dir: query.dir},
+        ...query.minTime !== undefined && { minTime: parseInt(query.minTime) },
+        ...query.maxTime !== undefined && { maxTime: parseInt(query.maxTime) },
+        ...query.lastId !== undefined && { lastId: query.lastId },
+        ...query.dir !== undefined && { dir: query.dir },
         limit: 500
     };
 
