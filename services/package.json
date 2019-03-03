@@ -13,6 +13,7 @@
     "test:int": "mocha ./test/integration/ --exit  --reporter spec --timeout 50001",
     "start:storage": "node ./src/data-storage/server.js",
     "start:websocket": "node ./src/websocket-api/index.js",
+    "start:wscs": "node ./src/ws-changestream-api/index.js",
     "start:rest": "node ./src/rest-api/index.js",
     "start:all": "concurrently \"npm run start:storage\" \"npm run start:websocket\" \"npm run start:rest\""
   },
