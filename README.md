@@ -141,6 +141,26 @@ nats.publish(`nats-dev.vehicle-data.${vehicleName}`, obj, ()=>{
 I've implemented Hank's reverse driving using fs-reverse, a small library that provides a reverse (line by line) stream of an input file. However, since the csv headers are at the top of the file, I had to remove them from the csv input file and concatenate them to the forward and reverse streams with the combine-streams package. It works, but the further issue is that the timestamps now are reversed on the reverse journey. It could be fixed by a transform stream that changed them on the fly. 
 The reverse driving is implemented separately in `index-reverse.js`
 
-# Web interface, Docker, etc.
+# Demo web app
+
+I added a small demo app to test the websocket and rest api. The app shows a map, graphs for speed, energy and soc, and can switch between the live data provided by the websocket and the historical data provided by the rest api, as well as switch between different vehicles.
+
+To install: from demo-frontend
+
+~~~
+npm install
+npm run dev
+~~~
+
+The app is made in Vue and uses bootstrap, leaflet, Chart.js , Socket.io, Axios, moment.
+
+Accesses the rest api on localhost port 8080 and socket.io on localhost port 8090.
+Screenshot below.
+
+![alt text](/demo-app.jpg)
+
+
+
+# Docker, etc.
 
 Working on it... :)
