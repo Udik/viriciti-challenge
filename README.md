@@ -12,9 +12,17 @@ The service is implemented using streams. A first class acts as a connector with
 
 ## Websocket API
 
+### from NATS:
+
 The websocket api is also implemented with streams, piping the NATS origin through the transform stream as before; but the destination stream in this case is provided by a WebsocketWriter class that wraps a Socket.io server (it's not strictly a websocket but adds flexibility, and it's simpler).
 
-A better option would have been using the MongoDb changestream as a source for the websocket connector- it would have guaranteed perfect identity between rest api and websocket data; but that seems to require configuring a replica set on the MongoDb server (working on it).
+Drawback: streamed data objects and rest api data objects are not identical. For example, ObjectId is missing in the streamed objects, as they never passed through the database.
+
+### from Mongo change stream:
+
+A newer version of the websocket api endpoint instead uses the MongoDb changestream as a data source. A connector class exposes a readable stream fed by the MongoDB changestream, and the stream is piped directly to the WebsocketWriter class.
+
+Drawback: newly inserted data is not necessarily "live" data. For example it could be the result of some maintenance operation where old data is inserted into a db table.
 
 ## Rest API
 
