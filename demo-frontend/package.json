@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack --config build/webpack.config.dev.js",
-    "dev": "webpack-dev-server --config build/webpack.config.dev.js -d --port 80"
+    "dev": "webpack-dev-server --config build/webpack.config.dev.js -d --port 8000 --host 0.0.0.0 --disable-host-check"
   },
   "author": "",
   "license": "ISC",

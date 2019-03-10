@@ -1,9 +1,11 @@
 import Axios from 'axios'
 
+import config from 'config.js';
+
 class VdataService  {
 
     constructor() {
-        this.baseUrl = "http://localhost:8080";
+        this.baseUrl = config.restBaseUrl;
         this.currentVehicle = "";
     }
 

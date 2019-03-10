@@ -15,8 +15,10 @@ import App from './components/dashboard.vue';
 
 import VueSocketIO from 'vue-socket.io';
 
+import config from 'config.js';
+
 Vue.use(new VueSocketIO({
-  connection: 'http://localhost:8090/vehicledata'
+  connection: config.soocketConnection
 }));
 
 new Vue({

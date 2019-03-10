@@ -6,23 +6,21 @@ Three services for the Viriciti Nodejs challenge.
 * websocket-api: provides the same data for real time consumption by a web application.
 * rest-api: provides a simple rest api to query the data in the MongoDb database.
 
-## Data storage
+## Data ingestion
 
 The service is implemented using streams. A first class acts as a connector with NATS and exposes the incoming data as a readable object stream; a second class exposes a transform stream that maps the incoming object to a structure that matches the database schema; a third class exposes a writable stream and writes the incoming data to a database collection. The streams are piped to each other.
 
 ## Websocket API
 
-### from NATS:
+### NATS version
 
-The websocket api is also implemented with streams, piping the NATS origin through the transform stream as before; but the destination stream in this case is provided by a WebsocketWriter class that wraps a Socket.io server (it's not strictly a websocket but adds flexibility, and it's simpler).
+This version reuses the NATS readable stream and the transform stream as for the data ingestion; but the destination stream in this case is provided by a WebsocketWriter class that wraps a Socket.io server (it's not strictly a websocket but adds flexibility, and it's simpler).
 
 Drawback: streamed data objects and rest api data objects are not identical. For example, ObjectId is missing in the streamed objects, as they never passed through the database.
 
-### from Mongo change stream:
+### Mongo change stream version
 
 A newer version of the websocket api endpoint instead uses the MongoDb changestream as a data source. A connector class exposes a readable stream fed by the MongoDB changestream, and the stream is piped directly to the WebsocketWriter class.
-
-Drawback: newly inserted data is not necessarily "live" data. For example it could be the result of some maintenance operation where old data is inserted into a db table.
 
 ## Rest API
 
@@ -82,6 +80,7 @@ The configuration (DB connection string, endpoints, etc.) are set in /services/s
     env: 'test',
     db_url: 'mongodb://localhost:27017',
     db_name: 'challenge-viriciti-test',
+    db_replicaset: 'rs',
     nats_url: 'localhost',
     nats_subject: "nats-test.vehicle-data",
     restapi_port: 8080,
@@ -153,6 +152,8 @@ The reverse driving is implemented separately in `index-reverse.js`
 
 I added a small demo app to test the websocket and rest api. The app shows a map, graphs for speed, energy and soc, and can switch between the live data provided by the websocket and the historical data provided by the rest api, as well as switch between different vehicles.
 
+The app is configured to access the rest api and the websocket on the same base url as the main application (through a reverse proxy, as in the dockerized version- see below). To change the configuration to access api and socket on different ports, replace the file /app/src/config.js with /app/src/config-local.js
+
 To install: from demo-frontend
 
 ~~~
@@ -162,13 +163,30 @@ npm run dev
 
 The app is made in Vue and uses bootstrap, leaflet, Chart.js , Socket.io, Axios, moment.
 
-Accesses the rest api on localhost port 8080 and socket.io on localhost port 8090.
+Config-local accesses the rest api on localhost port 8080 and socket.io on localhost port 8090.
 Screenshot below.
 
 ![alt text](/demo-app.jpg)
 
 
 
-# Docker, etc.
+# Docker and docker-compose
 
-Working on it... :)
+I've set up a docker-compose architecture for running all the services and the demo web app.
+Thee architecture is composed of:
+
+- a reverse proxy (ngninx), to route calls to the demo app, the rest api and the websocket
+- the storage (data ingestion) service
+- a mongodb instance
+- a nats server
+- the rest api
+- the websocket api
+- the demo frontend app
+
+To run the docker compose setup:
+
+~~~
+docker-compose up
+~~~
+
+The data generation script is not part of the setup.

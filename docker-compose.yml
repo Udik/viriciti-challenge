@@ -1,0 +1,55 @@
+version: '3'
+services:
+
+    rproxy:
+        build:
+            context: ./reverse-proxy
+            dockerfile: Dockerfile
+        ports:
+            - "5000:80"
+        depends_on:
+            - web
+            - restapi
+            - wsocket
+
+    web:
+        build: ./demo-frontend/
+
+    storage:
+        build:
+            context: ./services
+            dockerfile: store.Dockerfile
+        environment:
+            - DB_URL=mongodb://mongo:27017
+            - NATS_URL=nats
+        depends_on:
+            - nats
+            - mongo
+    
+    restapi:
+        build:
+            context: ./services
+            dockerfile: restapi.Dockerfile
+        environment:
+            - DB_URL=mongodb://mongo:27017
+        depends_on:
+            - mongo
+
+    wsocket:
+        build:
+            context: ./services
+            dockerfile: wsocket.Dockerfile
+        environment:
+            - DB_URL=mongodb://mongo:27017
+            - NATS_URL=nats
+        depends_on:
+            - nats
+            - mongo
+
+    mongo:
+        image: mongo:3.4-jessie
+
+    nats:
+        image: nats
+        ports:
+            - "4222:4222"
