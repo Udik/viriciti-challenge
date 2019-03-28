@@ -1,14 +1,36 @@
-# ViriCiti Nodejs challenge
+# Nodejs challenge
 
-Three services for the Viriciti Nodejs challenge.
+Three services for a Nodejs challenge.
 
-* data-storage: listens to messages from a NATS server, transforms them and stores the data in a MongoDb  instance;
-* websocket-api: provides the same data for real time consumption by a web application.
-* rest-api: provides a simple rest api to query the data in the MongoDb database.
+## Short challenge description
+
+A NATS server (https://nats.io/) receives realtime location and metrics data from a number of vehicles and distributes it to its subscribers. The challenge is to build the following components:
+
+- a data ingestion service saving the data to a MongoDB instance
+- a websocket endpoint for web clients, streaming real time data
+- a simple rest api to query historical data
+- a small web application to consume and display the data
+
+The challenge provides a script (vehicle-data-generator) to generate simulated data to be sent to NATS.
+
+## Solution outline
+
+* data-storage: data ingestion service
+* websocket-api: websocket endpoint
+* rest-api: small rest api developed based on restify, with query parameters and pagination 
+* demo-frontend: a small vue application to show realtime or historical data, with a map for location data and dynamic graphs for metrics.
+
+The basic components of the application expose redable, writable or transform stream, allowing some composition. For example, both the data ingestion and the websocket endpoint reuse the same NATS connector and data transformation stream, piping the results to a different writer. I.e.:
+
+ingestion: NATS reader -> data transformation -> MongoDB writer
+
+websocket: NATS reader -> data transformation -> websocket writer
+
+A docker-compose configuration is included to run the whole system, including an nginx reverse proxy for the different web endpoints, a NATS server and a MongoDB server (but not the vehicle data generator, that has to be started independently).
 
 ## Data ingestion
 
-The service is implemented using streams. A first class acts as a connector with NATS and exposes the incoming data as a readable object stream; a second class exposes a transform stream that maps the incoming object to a structure that matches the database schema; a third class exposes a writable stream and writes the incoming data to a database collection. The streams are piped to each other.
+The service is implemented using streams. A connector class with NATS exposes the incoming data as a readable object stream; a transform stream maps the incoming object to a structure that matches the database schema; a third class exposes a writable stream and writes the incoming data to a database collection. The streams are piped to each other.
 
 ## Websocket API
 
@@ -49,9 +71,79 @@ The format returned by the api is the following:
 I've used Restify for the server, which also provides the automatic generation of paging links.
 Mongoose is used to access the Db.
 
-## Testing
 
-The application has (improvable) integration and unit tests for its components, made using Mocha, Chai, Chai-Http, and Sinon. 
+# Demo web app
+
+I added a small demo app to test the websocket and rest api. The app shows a map, graphs for speed, energy and soc, and can switch between the live data provided by the websocket and the historical data provided by the rest api, as well as switch between different vehicles.
+
+The app is configured to access the rest api and the websocket on the same base url as the main application (through a reverse proxy, as in the dockerized version- see below). To change the configuration to access api and socket on different ports, replace the file /app/src/config.js with /app/src/config-local.js
+
+To install: from demo-frontend
+
+~~~
+npm install
+npm run dev
+~~~
+
+The app is made in Vue and uses bootstrap, leaflet, Chart.js , Socket.io, Axios, moment.
+
+Config-local accesses the rest api on localhost port 8080 and socket.io on localhost port 8090.
+Screenshot below.
+
+![alt text](/demo-app.jpg)
+
+
+## run the services
+
+`npm run start:all`
+
+Starts all the services in a console window, using by default the configuration in /services/src/config/dev.js.
+
+Or they can be started one by one as 
+
+~~~
+npm run start:storage
+npm run start:websocket
+npm run start:rest
+~~~
+
+The vechicle-data-generator has to be started separately. 
+
+**NOTE:** It's better to use the data generator provided in the repository as I've changed the message subject to `nats-dev.vehicle-data.`
+
+The data generator needs to be installed separately: from ./vehicle-data-generator:
+
+~~~
+npm install
+node ./index.js
+~~~
+
+
+# Docker and docker-compose
+
+I've set up a docker-compose architecture for running all the services and the demo web app.
+Thee architecture is composed of:
+
+- a reverse proxy (ngninx), to route calls to the demo app, the rest api and the websocket
+- the storage (data ingestion) service
+- a mongodb instance
+- a nats server
+- the rest api
+- the websocket api
+- the demo frontend app
+
+To run the docker compose setup:
+
+~~~
+docker-compose up
+~~~
+
+The data generation script is not part of the setup.
+
+
+## Tests
+
+The application has integration and unit tests for its components, made using Mocha, Chai, Chai-Http, and Sinon. 
 
 # To install, test and run
 
@@ -87,106 +179,3 @@ The configuration (DB connection string, endpoints, etc.) are set in /services/s
     websocket_port: 80
 };
 ~~~~
-
-## run the services
-
-`npm run start:all`
-
-Starts all the services in a console window, using by default the configuration in /services/src/config/dev.js.
-
-Or they can be started one by one as 
-
-~~~
-npm run start:storage
-npm run start:websocket
-npm run start:rest
-~~~
-
-The vechicle-data-generator has to be started separately. 
-
-**NOTE:** It's better to use the data generator provided in the repository as I've changed the message subject to `nats-dev.vehicle-data.`
-
-The data generator needs to be installed separately: from ./vehicle-data-generator:
-
-~~~
-npm install
-node ./index.js
-~~~
-
-# Issues
-
-Many, but the first that come to mind. I wanted to create entirely separate services, but also wanted to share code between them. For example the NATS connector and transform stream are used both by the data storage and the websocket services, and the Mongoose model is shared between storage and rest api. I ended up with a single node package with multiple independent applications inside, but it's far from ideal.
-
-Some rows in the test csv lack a data point and the Mongoose validation fails and the object is not saved- you'll see errors in the console. The mongoose schema definition can be relaxed but the validation on the object also seems a good feature.
-
-# Questions in the Vehicledata generator
-
-First: 
-
-* fs.createReadStream- opens a file stream for read; it's more complicated but useful for "passthrough" processing of very large files. Only sequential access to the file contents.
-* fs.readFileAsync- reads a file asynchronously, providing the entire content to a callback function. Doesn't block the event loop, allows random access to the files content. Drawback: loads the entire file content in memory. 
-* fs.readFileSync- reads an entire file synchronously (blocking the node thread and the event loop). Option for scripts that don't have concurrent users or event processing (e.g. batch scripts). As readFileAsync, loads the entire content of the file in memory.
-
-Second:
-
-If publishing of events to NATS is slow the callback of `nats.publish` will be called later, creating (I believe) a backpressure in the input stream- i.e., the csv file will be read slower. To simulate a slower connection, I've replaced the line
-
-```javascript
-nats.publish(`nats-dev.vehicle-data.${vehicleName}`, obj, cb)
-```
-
-with
-
-```javascript
-nats.publish(`nats-dev.vehicle-data.${vehicleName}`, obj, ()=>{
-  setTimeout(cb, Math.ceil(Math.random() * slowConnection.range) + slowConnection.minDelay);
-});
-```
-
-## Reverse driving
-
-I've implemented Hank's reverse driving using fs-reverse, a small library that provides a reverse (line by line) stream of an input file. However, since the csv headers are at the top of the file, I had to remove them from the csv input file and concatenate them to the forward and reverse streams with the combine-streams package. It works, but the further issue is that the timestamps now are reversed on the reverse journey. It could be fixed by a transform stream that changed them on the fly. 
-The reverse driving is implemented separately in `index-reverse.js`
-
-# Demo web app
-
-I added a small demo app to test the websocket and rest api. The app shows a map, graphs for speed, energy and soc, and can switch between the live data provided by the websocket and the historical data provided by the rest api, as well as switch between different vehicles.
-
-The app is configured to access the rest api and the websocket on the same base url as the main application (through a reverse proxy, as in the dockerized version- see below). To change the configuration to access api and socket on different ports, replace the file /app/src/config.js with /app/src/config-local.js
-
-To install: from demo-frontend
-
-~~~
-npm install
-npm run dev
-~~~
-
-The app is made in Vue and uses bootstrap, leaflet, Chart.js , Socket.io, Axios, moment.
-
-Config-local accesses the rest api on localhost port 8080 and socket.io on localhost port 8090.
-Screenshot below.
-
-![alt text](/demo-app.jpg)
-
-
-
-# Docker and docker-compose
-
-I've set up a docker-compose architecture for running all the services and the demo web app.
-Thee architecture is composed of:
-
-- a reverse proxy (ngninx), to route calls to the demo app, the rest api and the websocket
-- the storage (data ingestion) service
-- a mongodb instance
-- a nats server
-- the rest api
-- the websocket api
-- the demo frontend app
-
-To run the docker compose setup:
-
-~~~
-docker-compose up
-~~~
-
-The data generation script is not part of the setup.
